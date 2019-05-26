@@ -2,6 +2,34 @@ var http = require('http');
 var fs = require('fs');
 var url = require('url');
  
+
+function templateHTML(title, list, changable){
+    return `
+        <!doctype html>
+        <html>
+        <head>
+        <title>WEB1 - ${title}</title>
+        <meta charset="utf-8">
+        </head>
+        <body>
+        <h1><a href="/">WEB</a></h1>
+        ${list}
+        ${changable}
+        </body>
+        </html>            
+    `; 
+}
+
+function templateList(filelist){
+    var list = '<ul>'
+    var i = 0;
+    while(i < filelist.length){
+        list = list + `<li><a href="/?id=${filelist[i]}">${filelist[i]}</a></li>`
+        i = i + 1;
+    }
+    list = list + '</ul>'
+    return list;
+}
 var app = http.createServer(function(request,response){
     var _url = request.url;
     console.log('url =',_url)
@@ -13,42 +41,31 @@ var app = http.createServer(function(request,response){
     var title = queryData.id;
     // query data 중에서 id 부분을 title 변수에 담아 사용한다. 
     var pathname = url.parse(_url, true).pathname;
-
-    if(pathname === '/'){
-        fs.readFile(`./data/${queryData.id}`, 'utf-8', function(err, description){
-            var template = `
-            <!doctype html>
-            <html>
-            <head>
-            <title>WEB1 - ${title}</title>
-            <meta charset="utf-8">
-            </head>
-            <body>
-            <h1><a href="/">WEB</a></h1>
-            <ol>
-                <li><a href="/?id=HTML">HTML</a></li>
-                <li><a href="/?id=CSS">CSS</a></li>
-                <li><a href="/?id=JavaScript">JavaScript</a></li>
-            </ol>
-            <h2>${title}</h2>
-            <p>
-               ${description} 
-            </p>
-            </body>
-            </html>
-        
-        `;
     
-        response.writeHead(200);
-        response.end(template);
-      
-        })
+    if(pathname === '/'){
+        if(queryData.id === undefined){
+            fs.readdir('./data', function(err, filelist){
+                var title = 'Welcome'
+                var description = 'Hello, Nodejs!'
+                var list = templateList(filelist);
+                var template = templateHTML(title, list, `<h2>${title}</h2>${description}`); 
+            response.writeHead(200);
+            response.end(template);
+            });
+        } else {
+            fs.readFile(`./data/${queryData.id}`, 'utf-8', function(err, description){
+                fs.readdir('./data', function(err, filelist){
+                    var list = templateList(filelist);
+                    var title = queryData.id
+                    var template = templateHTML(title, list, `<h2>${title}</h2>${description}`);
+                response.writeHead(200);
+                response.end(template);  
+                })
+            });
+        }
     } else {
         response.writeHead(404);
         response.end('Not Found!');
     }
-
-    
-
 });
 app.listen(3000);
