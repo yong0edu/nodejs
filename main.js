@@ -2,6 +2,7 @@ var http = require('http');
 var fs = require('fs');
 var url = require('url');
 var qs = require('querystring');
+var path = require('path');
 
 //Refactoring. 객체의 끝판왕은 모듈 그 다음이 객체. 
 var template = require('./lib/template.js')
@@ -10,7 +11,11 @@ var app = http.createServer(function(request,response){
     var _url = request.url;
     console.log('url =',_url)
     var queryData = url.parse(_url, true).query;
+    var a = url.parse(_url, true)
+    console.log('queryParse =', a)
     console.log('query =', queryData)
+    b = path.parse(_url)
+    console.log('b=', b)
     // url.parse는 url을 객체 형식으로 분석해주는데, 
     // 인자로 _url를 넘겨주고 거기에 query 부분만 가져달라고 하면
     // {id: 'CSS'}등의 객체를 생산해낸다. 
@@ -31,8 +36,9 @@ var app = http.createServer(function(request,response){
             response.end(html);
             });
         } else {
-            fs.readFile(`./data/${queryData.id}`, 'utf-8', function(err, description){
-                fs.readdir('./data', function(err, filelist){
+            fs.readdir('./data', function(err, filelist){
+                var filteredID = path.parse(queryData.id).base
+                fs.readFile(`data/${filteredID}`, 'utf-8', function(err, description){
                     var list = template.list(filelist);
                     var title = queryData.id
                     var html = template.html(title, list,
@@ -87,8 +93,9 @@ var app = http.createServer(function(request,response){
             })
         }
     } else if (pathname === '/update'){
-        fs.readFile(`./data/${queryData.id}`, 'utf-8', function(err, description){
-            fs.readdir('./data', function(err, filelist){
+        fs.readdir('./data', function(err, filelist){
+            var filteredID = path.parse(queryData.id).base
+            fs.readFile(`./data/${filteredID}`, 'utf-8', function(err, description){
                 var list = template.list(filelist);
                 var title = queryData.id
                 var html = template.html(title, list,
@@ -120,9 +127,10 @@ var app = http.createServer(function(request,response){
         request.on('end', function(){
             var post = qs.parse(body); 
             var id = post.id;
+            var filteredID = path.parse(id).base
             var title = post.title;
             var desc = post.description; 
-            fs.rename(`data/${id}`, `data/${title}`, function(err){
+            fs.rename(`data/${filteredID}`, `data/${title}`, function(err){
                 fs.writeFile(`data/${title}`, desc, 'utf8', function(err){
                     response.writeHead(302, {Location:`/?id=${qs.escape(title)}`});
                     response.end();
@@ -137,7 +145,8 @@ var app = http.createServer(function(request,response){
         request.on('end', function(){
             var post = qs.parse(body); 
             var id = post.id;
-            fs.unlink(`data/${id}`, function(error){
+            var filteredID = path.parse(id).base
+            fs.unlink(`data/${filteredID}`, function(error){
                 response.writeHead(302, {Location: `/`});
                 response.end();
               })
